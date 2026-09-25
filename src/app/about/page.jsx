@@ -284,7 +284,7 @@ export default function AboutPage() {
 
                     <div className="relative min-h-[550px] lg:min-h-[650px]">
                         <Image
-                            src="/rooms/Tripple-classic.jpg"
+                            src="/rooms/Deluxe-room2.jpg"
                             alt="Mare Vista luxury room"
                             fill
                             className="object-contain"
