@@ -236,7 +236,7 @@ export default function AboutPage() {
 
                     <div className="relative min-h-[550px] overflow-hidden">
                         <Image
-                            src="/rooms/Tripple-classic.jpg"
+                            src="/rooms/Deluxe-room3.jpg"
                             alt="Mare Vista hospitality"
                             fill
                             className="object-cover"
@@ -284,7 +284,7 @@ export default function AboutPage() {
 
                     <div className="relative min-h-[550px] lg:min-h-[650px]">
                         <Image
-                            src="/rooms/Deluxe-room2.jpg"
+                            src="/rooms/Tripple-classic.jpg"
                             alt="Mare Vista luxury room"
                             fill
                             className="object-contain"
