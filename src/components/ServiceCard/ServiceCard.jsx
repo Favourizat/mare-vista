@@ -33,7 +33,7 @@ export default function ServiceCard({ service }) {
                     <div className="grid grid-rows-[0fr] transition-all duration-500 group-hover:grid-rows-[1fr]">
                         <div className="overflow-hidden">
                             <p className="mt-3 max-w-sm text-sm leading-6 text-[var(--pale)]">
-                                {service.description}
+                                {service.description.slice(0, 72)}
                             </p>
 
                             <Link
