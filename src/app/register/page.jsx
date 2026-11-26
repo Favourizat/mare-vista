@@ -7,23 +7,57 @@ export default function RegisterPage() {
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [error, setError] = useState("")
+    const [success, setSuccess] = useState("")
+    const [loading, setLoading] = useState(false)
 
     const handleSubmit = async (e) => {
         e.preventDefault()
 
-        const response = await fetch("/api/auth/register", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                name,
-                email,
-                password,
-            })
-        })
+        setError("")
+        setSuccess("")
 
-        const data = await response.json()
+        if (!name.trim() || !email.trim() || !password) {
+            setError("Please complete all fields.")
+            return
+        }
+
+        setLoading(true)
+
+        try {
+            const response = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    password,
+                }),
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || data.error || "Registration failed. Please try again."
+                )
+            }
+
+            setSuccess(data.message || "Your account has been created successfully.")
+
+            setName("")
+            setEmail("")
+            setPassword("")
+
+        } catch (error) {
+            console.error("REGISTRATION ERROR:", error)
+            setError(error.message || "Something went wrong. Please try again.")
+
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -34,7 +68,6 @@ export default function RegisterPage() {
                 className="w-full max-w-md border border-[var(--border)] bg-[var(--white)] px-8 py-10 shadow-sm md:px-10"
             >
 
-                {/* Heading */}
                 <div className="text-center">
 
                     <p className="text-xs uppercase tracking-[0.3em] text-[var(--gold-dark)]">
@@ -52,10 +85,8 @@ export default function RegisterPage() {
 
                 </div>
 
-                {/* Form Fields */}
                 <div className="mt-10 space-y-6">
 
-                    {/* Name */}
                     <div>
                         <label
                             htmlFor="name"
@@ -70,11 +101,11 @@ export default function RegisterPage() {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Enter your full name"
+                            required
                             className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-[var(--navy)] outline-none transition placeholder:text-[var(--foreground)]/40 focus:border-[var(--gold)] focus:ring-1 focus:ring-[var(--gold)]"
                         />
                     </div>
 
-                    {/* Email */}
                     <div>
                         <label
                             htmlFor="email"
@@ -89,11 +120,11 @@ export default function RegisterPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Enter your email"
+                            required
                             className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-[var(--navy)] outline-none transition placeholder:text-[var(--foreground)]/40 focus:border-[var(--gold)] focus:ring-1 focus:ring-[var(--gold)]"
                         />
                     </div>
 
-                    {/* Password */}
                     <div>
                         <label
                             htmlFor="password"
@@ -108,21 +139,34 @@ export default function RegisterPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Create a password"
+                            required
+                            minLength={8}
                             className="w-full border border-[var(--border)] bg-transparent px-4 py-3 text-sm text-[var(--navy)] outline-none transition placeholder:text-[var(--foreground)]/40 focus:border-[var(--gold)] focus:ring-1 focus:ring-[var(--gold)]"
                         />
                     </div>
 
                 </div>
 
-                {/* Submit Button */}
+                {error && (
+                    <p className="mt-5 text-sm text-red-600">
+                        {error}
+                    </p>
+                )}
+
+                {success && (
+                    <p className="mt-5 text-sm text-green-700">
+                        {success}
+                    </p>
+                )}
+
                 <button
                     type="submit"
-                    className="mt-8 w-full bg-[var(--navy)] px-6 py-4 text-xs font-medium uppercase tracking-[0.22em] text-[var(--white)] transition duration-300 hover:bg-[var(--gold-dark)]"
+                    disabled={loading}
+                    className="mt-8 w-full bg-[var(--navy)] px-6 py-4 text-xs font-medium uppercase tracking-[0.22em] text-[var(--white)] transition duration-300 hover:bg-[var(--gold-dark)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                    Create Account
+                    {loading ? "Creating Account..." : "Create Account"}
                 </button>
 
-                {/* Login Link */}
                 <p className="mt-8 text-center text-sm text-[var(--foreground)]/65">
                     Already have an account?{" "}
                     <a
