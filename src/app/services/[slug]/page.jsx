@@ -143,16 +143,18 @@ export default async function ServicesDetailsPage({ params }) {
                                 <p>
                                     {service.description}
                                 </p>
+
+                                <div className="mt-auto pt-8">
+                                    <Link
+                                        href="/services"
+                                        className="inline-flex items-center border border-[var(--navy)] px-7 py-3 text-sm uppercase tracking-[0.15em] text-[var(--navy)] transition-all duration-300 hover:bg-[var(--navy)] hover:text-[var(--white)]"
+                                    >
+                                        ← All Services
+                                    </Link>
+                                </div>
                             </div>
 
-                            <div className="mt-auto pt-8">
-                                <Link
-                                    href="/services"
-                                    className="inline-flex items-center border border-[var(--navy)] px-7 py-3 text-sm uppercase tracking-[0.15em] text-[var(--navy)] transition-all duration-300 hover:bg-[var(--navy)] hover:text-[var(--white)]"
-                                >
-                                    ← All Services
-                                </Link>
-                            </div>
+
 
                         </div>
 

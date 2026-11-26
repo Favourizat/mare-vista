@@ -15,41 +15,87 @@ function SearchResultsContent() {
 
     const [availability, setAvailability] = useState({})
     const [loading, setLoading] = useState(true)
+    const [error, setError] = useState("")
 
     useEffect(() => {
+        let isMounted = true
+
         async function checkAvailability() {
             if (!checkin || !checkout) {
+                setError("Please select your check-in and check-out dates.")
+                setLoading(false)
                 return
             }
 
-            const results = await Promise.all(
-                rooms.map(async (room) => {
-                    const response = await fetch(
-                        `/api/rooms/availability?roomId=${room.id}&checkin=${checkin}&checkout=${checkout}`
-                    )
+            setLoading(true)
+            setError("")
+            setAvailability({})
 
-                    const data = await response.json()
+            try {
+                const results = await Promise.all(
+                    rooms.map(async (room) => {
+                        const params = new URLSearchParams({
+                            roomId: String(room.id),
+                            checkin,
+                            checkout,
+                        })
 
-                    return {
-                        roomId: room.id,
-                        available: data.available,
-                    }
+                        const response = await fetch(
+                            `/api/rooms/availability?${params.toString()}`,
+                            { cache: "no-store" }
+                        )
+
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+
+                            throw new Error(
+                                errorData.error ||
+                                errorData.message ||
+                                `Availability request failed for ${room.name}: ${response.status}`
+                            );
+                        }
+
+                        const data = await response.json();
+
+                        return {
+                            roomId: room.id,
+                            available: data.available === true,
+                        };
+                    })
+                )
+
+                console.log("AVAILABILITY RESULTS:", results)
+
+                const availabilityMap = {}
+
+                results.forEach((result) => {
+                    availabilityMap[result.roomId] = result.available
                 })
-            )
 
-            console.log("AVAILABILITY RESULTS:", results)
+                if (isMounted) {
+                    setAvailability(availabilityMap)
+                }
 
-            const availabilityMap = {}
+            } catch (error) {
+                console.error("AVAILABILITY ERROR:", error)
 
-            results.forEach((result) => {
-                availabilityMap[result.roomId] = result.available
-            })
+                if (isMounted) {
+                    setError(error.message || "We couldn't check room availability. Please try again.")
+                }
 
-            setAvailability(availabilityMap)
-            setLoading(false)
+            } finally {
+                if (isMounted) {
+                    setLoading(false)
+                }
+            }
         }
 
         checkAvailability()
+
+        return () => {
+            isMounted = false
+        }
+
     }, [checkin, checkout])
 
 
@@ -105,11 +151,26 @@ function SearchResultsContent() {
     const formattedCheckin = formatDate(checkin)
 
     // This is the heart of the Filtering Logic
-    const availableRooms = rooms.filter(
-        (room) => room.guests >= Number(guests) &&
-            // !isRoomBooked(room.id, checkin, checkout)
-            availability[room.id] === true
-    )
+    console.log("SELECTED GUESTS:", guests)
+    console.log("CONVERTED GUESTS:", Number(guests))
+    console.log("AVAILABILITY MAP:", availability)
+
+    const availableRooms = rooms.filter((room) => {
+        const hasEnoughCapacity = room.guests >= Number(guests)
+        const isAvailable = availability[room.id] === true
+
+        console.log(`ROOM: ${room.name}`, {
+            roomId: room.id,
+            capacity: room.guests,
+            selectedGuests: Number(guests),
+            hasEnoughCapacity,
+            availability: availability[room.id],
+            isAvailable,
+        })
+
+        return hasEnoughCapacity && isAvailable
+    })
+
     console.log("AVAILABLE ROOMS:", availableRooms)
 
     const roomsWithTotal = availableRooms.map((room) => ({
@@ -138,50 +199,54 @@ function SearchResultsContent() {
                             <p className="mb-4 text-sm text-[var(--rough)]">
                                 Checking room availability...
                             </p>
+                        ) : error ? (
+                            <p className="text-sm text-red-600">
+                                {error}
+                            </p>
                         ) : roomsWithTotal.length === 0 ? (
-                        <p className="text-sm text-[var(--rough)] ">
-                            No rooms available for your selected dates.
-                        </p>
+                            <p className="text-sm text-[var(--rough)]">
+                                No rooms available for your selected dates.
+                            </p>
                         ) : (
                             roomsWithTotal.map((room) => (
-                        <div
-                            key={room.id}
-                            className="border border-[var(--border)] bg-[var(--white)] p-6 md:p-8"
-                        >
-                            <div className="flex items-start justify-between gap-6">
-                                <div>
-                                    <h4 className="font-display text-xl font-semibold text-[var(--navy)]">
+                                <div
+                                    key={room.id}
+                                    className="border border-[var(--border)] bg-[var(--white)] p-6 md:p-8"
+                                >
+                                    <div className="flex items-start justify-between gap-6">
+                                        <div>
+                                            <h4 className="font-display text-xl font-semibold text-[var(--navy)]">
+                                                <Link
+                                                    className="underline transition-colors duration-300 hover:text-[var(--gold)]"
+                                                    href={`/rooms/${room.roomSlug}`}
+                                                >
+                                                    {room.name}
+                                                </Link>
+                                            </h4>
+
+                                            <p className="mt-2 text-sm text-[var(--rough)]">
+                                                MaxOccupancy: {room.guests} adult
+                                                {room.guests > 1 ? "s" : ""}
+                                            </p>
+                                        </div>
+
+                                        <p className="shrink-0 text-lg font-semibold text-[var(--navy)]">
+                                            N{room.price.toLocaleString()}
+                                        </p>
+                                    </div>
+
+                                    <div className="my-6 border-t border-[var(--border)]" />
+
+                                    <div className="flex justify-end">
                                         <Link
-                                            className="underline transition-colors duration-300 hover:text-[var(--gold)]"
-                                            href={`/rooms/${room.roomSlug}`}
+                                            href={`/booking?roomId=${room.id}&checkin=${checkin}&checkout=${checkout}&guests=${guests}`}
+                                            className="bg-[var(--navy)] px-6 py-3 text-sm font-medium uppercase tracking-[0.15em] text-[var(--white)] transition-colors duration-300 hover:bg-[var(--gold-dark)]"
                                         >
-                                            {room.name}
+                                            Reserve
                                         </Link>
-                                    </h4>
-
-                                    <p className="mt-2 text-sm text-[var(--rough)]">
-                                        MaxOccupancy: {room.guests}{""} adult
-                                        {room.guests > 1 ? "s" : ""}
-                                    </p>
+                                    </div>
                                 </div>
-
-                                <p className="shrink-0 text-lg font-semibold text-[var(--navy)]">
-                                    N{room.price.toLocaleString()}
-                                </p>
-                            </div>
-
-                            <div className="my-6 border-t border-[var(--border)]" />
-
-                            <div className="flex justify-end">
-                                <Link
-                                    href={`/booking?roomId=${room.id}&checkin=${checkin}&checkout=${checkout}&guests=${guests}`}
-                                    className="bg-[var(--navy)] px-6 py-3 text-sm font-medium uppercase tracking-[0.15em] text-[var(--white)] transition-colors duration-300 hover:bg-[var(--gold-dark)]">
-                                    Reserve
-                                </Link>
-                            </div>
-
-                        </div>
-                        ))
+                            ))
                         )}
                     </div>
 
