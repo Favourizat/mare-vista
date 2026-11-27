@@ -14,31 +14,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
 
             async authorize(credentials) {
-                await connectToDatabase();
+                try {
+                    console.log("AUTH STEP 1: Connecting to MongoDB...");
 
-                const user = await User.findOne({
-                    email: credentials.email,
-                });
+                    await connectToDatabase();
 
-                if (!user) {
-                    return null;
+                    console.log("AUTH STEP 2: MongoDB connected.");
+
+                    const normalizedEmail = credentials.email?.trim().toLowerCase();
+
+                    const user = await User.findOne({
+                        email: normalizedEmail,
+                    });
+
+                    console.log("AUTH STEP 3: User found:", !!user);
+
+                    if (!user) {
+                        console.log("AUTH RESULT: No account found.");
+                        return null;
+                    }
+
+                    console.log("AUTH STEP 4: Password field exists:", !!user.password);
+
+                    const passwordMatch = await bcrypt.compare(
+                        credentials.password,
+                        user.password
+                    );
+
+                    console.log("AUTH STEP 5: Password matches:", passwordMatch);
+
+                    if (!passwordMatch) {
+                        return null;
+                    }
+
+                    console.log("AUTH RESULT: Authentication successful.");
+
+                    return {
+                        id: user._id.toString(),
+                        name: user.name,
+                        email: user.email,
+                    };
+
+                } catch (error) {
+                    console.error("CREDENTIAL AUTHENTICATION ERROR:", error);
+                    throw error;
                 }
-
-                const passwordMatch = await bcrypt.compare(
-                    credentials.password,
-                    user.password
-                );
-
-                if (!passwordMatch) {
-                    return null;
-                }
-
-                return {
-                    id: user._id.toString(),
-                    name: user.name,
-                    email: user.email,
-                };
-            },
+            }
         }),
 
         Google({
